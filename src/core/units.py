@@ -25,7 +25,7 @@ class UnitBreaker():
     Returns
     -------
     point_flags : 1D numpy array, shape (n_samples,)
-      Flag of point, 1 if low peak, 2 if high peak, 0 otherwise.
+      Flag of points, 1 if low peak, 2 if high peak, 0 otherwise.
     """
 
     diff = np.diff(x, axis = 0)
@@ -74,8 +74,8 @@ class UnitBreaker():
     x : 1D numpy array, shape (n_samples,)
       The input signal.
 
-    flag : 1D numpy array, shape (n_samples,)
-      Flag of point, 1 if low peak, 2 if high peak, 0 otherwise.
+    flags : 1D numpy array, shape (n_samples,)
+      Flag of points, 1 if low peak, 2 if high peak, 0 otherwise.
 
     margin : int, default: 2
       Number of samples each side of current sample in the data.
@@ -84,7 +84,7 @@ class UnitBreaker():
     Returns
     -------
     refined_flags : 1D numpy array, shape (n_samples,)
-      Flag of point after being refined, 1 if low peak, 2 if high peak, 0 otherwise.
+      Flag of points after being refined, 1 if low peak, 2 if high peak, 0 otherwise.
     """
 
     refined_flags = flags.copy()
@@ -99,6 +99,51 @@ class UnitBreaker():
         refined_flags[i] = 0
         refined_flags[new_peak_id] = 2
     return refined_flags
+
+  @staticmethod
+  def select_boundary(self, gr, flags, tvd, min_thickness = 1, gr_shoulder_threshold = 10):
+    """Select peaks in the gr curve to become boundaries.
+
+    Parameters
+    ----------
+    gr : 1D numpy array, shape (n_samples,)
+      The input gamma ray.
+
+    flags : 1D numpy array, shape (n_samples,)
+      Flag of points, 1 if low peak, 2 if high peak, 0 otherwise.
+
+    tvd : 1D numpy array, shape (n_samples,)
+      The input tv depth.
+
+    min_thickness : float, default: 1
+      Minimum of thickness of a unit. Thickness is computed by difference of tvd between the first and the last sample in a unit.
+
+    gr_shoulder_threshold : float, default: 10
+      Minium of difference of gr between 2 samples to create a shoulder effect.
+
+    Returns
+    -------
+    boundary_flags : 1D numpy array, shape (n_samples,)
+      Boundary flag of points, 1 if boundary, 0 otherwise.
+    """
+
+    n_samples = flags.shape[0]
+    boundary_flags = flags.copy()
+    left = 0
+    for i in range (1, n_samples):
+        if boundary_flags[i] != 0:
+          if tvd[i] - tvd[left] < min_thickness:
+            delta_gr = gr[i] - gr[left]
+            if abs(delta_gr) > gr_shoulder_threshold:
+                boundary_flags[left] = 0
+                boundary_flags[i] = 0
+                left = (left + i) // 2
+                boundary_flags[left] = 1
+            else:
+                boundary_flags[i] = 0
+          else:
+              left = i
+    return boundary_flags
 
   def break_unit(self, *args, **kwargs):
     pass
