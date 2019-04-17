@@ -140,8 +140,63 @@ class UnitBreaker(object):
           left = i
     return boundary_flags
 
-  def stack_unit(self, *args, **kwargs):
-    pass
+  @staticmethod
+  def stack_unit(self, gr_smooth, units_boundary,
+                min_samples = 15, gr_smooth_threshold = 5,
+                *args, **kwargs):
+    """Stacking units to create stacking patterns.
+
+    Parameters
+    ----------
+    gr_smooth : 1D numpy array, shape (n_samples,)
+      The input smoothed gamma ray.
+
+    unit_boundary : 1D numpy array, shape (n_samples,)
+      Boundary flag of points, 1 if boundary, 0 otherwise.
+
+    min_samples : int, default: 15
+      Minimum number of samples in a stack.
+
+    gr_smooth_threshold : float, default: 10
+      Threshold of smoothed gamma ray to determine different patterns.
+
+    Returns
+    -------
+    stacks_label : 1D numpy array, shape (n_samples,)
+      Pattern of stacks, value is in [1, 2, 3].
+    """
+
+    n_samples = gr_smooth.shape[0]
+    stacks_pattern = np.zeros(n_samples).astype(np.int8)
+    stacks_boundary = self.detect_changing_direction_point(gr_smooth, epsilon = 0, multiplier = 1000000)
+
+    idx_set = []
+    for i in range (n_samples):
+      idx_set.append(i)
+      if stacks_boundary[i] != 0 or i == n_samples - 1:
+        if i - idx_set[0] > min_samples:
+          dif = gr_smooth[idx_set[-1]] - gr_smooth[idx_set[0]]
+          if dif > gr_smooth_threshold:
+            stacks_pattern[idx_set] = 2
+          elif dif < -gr_smooth_threshold:
+            stacks_pattern[idx_set] = 3
+          else:
+            stacks_pattern[idx_set] = 1
+          idx_set = []
+        else:
+          stacks_boundary[i] = 0
+
+    stacks_label = np.zeros(n_samples).astype(np.int8)
+    idx_set = []
+
+    for i in range (n_samples):
+      idx_set.append(i)
+      if units_boundary[i] != 0 or i == n_samples - 1:
+        stacks_pattern_of_unit = stacks_pattern[idx_set].copy()
+        stacks_label[idx_set] = np.argmax(np.bincount(stacks_pattern_of_unit))
+        idx_set = []
+
+    return stacks_label
 
   @staticmethod
   def detect_sharp_boundary(self, gr, boundary_flags, min_diff = 40, *args, **kwargs):
