@@ -145,14 +145,45 @@ class UnitBreaker():
           left = i
     return boundary_flags
 
-  def break_unit(self, *args, **kwargs):
-    pass
-
   def stack_unit(self, *args, **kwargs):
     pass
 
-  def detect_sharp_boundary(self, *args, **kwargs):
-    pass
+  @staticmethod
+  def detect_sharp_boundary(self, gr, boundary_flags, min_diff = 40, *args, **kwargs):
+    """Detecting sharp boundaries on gr curve.
+
+    Parameters
+    ----------
+    gr : 1D numpy array, shape (n_samples,)
+      The input gamma ray.
+
+    boundary_flags : 1D numpy array, shape (n_samples,)
+      Boundary flag of points, 1 if boundary, 0 otherwise.
+
+    min_diff : float, default: 40
+      Minium of difference between 2 gr values to be a sharp boundary.
+
+    Returns
+    -------
+    sharp_boundary_flags : 1D numpy array, shape (n_samples,)
+      Flag of sharp boundaries, 1 if true, 0 otherwise.
+    """
+
+    n_samples = gr.shape[0]
+    sharp_boundary_flags = np.zeros(n_samples).astype(np.int8)
+
+    for i in range (n_samples):
+      if boundary_flags[i] != 0:
+        if i < n_samples - 1:
+          min_fol = np.min(gr[i + 1: i + 3])
+          max_fol = np.max(gr[i + 1: i + 3])
+          mean_fol = np.mean(gr[i + 1: i + 3])
+          min_prev = np.min(gr[i - 2: i])
+          max_prev = np.max(gr[i - 2: i])
+          mean_prev = np.mean(gr[i - 2: i])
+          if max(abs(min_fol - max_prev), abs(max_fol - min_prev), abs(mean_fol - mean_prev)) > min_diff:
+            sharp_boundary_flags[i] = 1
+    return sharp_boundary_flags
 
   @staticmethod
   def detect_lithofacies(self, boundary_flags, mud_volume, method = "major", *args, **kwargs):
