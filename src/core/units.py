@@ -17,14 +17,15 @@ class UnitBreaker():
       The input signal.
 
     epsilon : float, default: 0.02
-      Threshold to determine minor change
+      Threshold to determine minor change.
 
     multiplier : float, default: 2
-      Threshold to determine sudden change
+      Threshold to determine sudden change.
 
-    Returns:
+    Returns
+    -------
     point_flags : 1D numpy array, shape (n_samples,)
-      Flag of point, 1 if low point, 2 if high point, 0 otherwise
+      Flag of point, 1 if low peak, 2 if high peak, 0 otherwise.
     """
 
     diff = np.diff(x, axis = 0)
@@ -49,10 +50,10 @@ class UnitBreaker():
           else:
             point_flags[i] = 2
         elif abs(diff[i]) < abs(diff[i - 1]) / multiplier:
-            if increase:
-              point_flags[i] = 2
-            else:
-              point_flags[i] = 1
+          if increase:
+            point_flags[i] = 2
+          else:
+            point_flags[i] = 1
         elif diff[i] * diff[i - 1] == 0:
           if increase and diff[i] < 0:
             if abs(diff[i]) > 0:
@@ -65,8 +66,39 @@ class UnitBreaker():
     return point_flags
 
   @staticmethod
-  def refine_peak(self, x, flag, margin = 2, *args, **kwargs):
-    pass
+  def refine_peak(self, x, flags, margin = 2, *args, **kwargs):
+    """Refining peaks in the signal, by moving flag of peaks in a window.
+
+    Parameters
+    ----------
+    x : 1D numpy array, shape (n_samples,)
+      The input signal.
+
+    flag : 1D numpy array, shape (n_samples,)
+      Flag of point, 1 if low peak, 2 if high peak, 0 otherwise.
+
+    margin : int, default: 2
+      Number of samples each side of current sample in the data.
+      These samples create a window for processing.
+
+    Returns
+    -------
+    refined_flags : 1D numpy array, shape (n_samples,)
+      Flag of point after being refined, 1 if low peak, 2 if high peak, 0 otherwise.
+    """
+
+    refined_flags = flags.copy()
+    n_samples = flags.shape[0]
+    for i in range (margin, n_samples - margin):
+      if refined_flags[i] == 1:
+        new_peak_id = i - margin + np.argmin(x[i - margin: i + margin + 1])
+        refined_flags[i] = 0
+        refined_flags[new_peak_id] = 1
+      elif refined_flags[i] == 2:
+        new_peak_id = i - margin + np.argmax(x[i - margin: i + margin + 1])
+        refined_flags[i] = 0
+        refined_flags[new_peak_id] = 2
+    return refined_flags
 
   def break_unit(self, *args, **kwargs):
     pass
