@@ -131,18 +131,18 @@ class UnitBreaker():
     boundary_flags = flags.copy()
     left = 0
     for i in range (1, n_samples):
-        if boundary_flags[i] != 0:
-          if tvd[i] - tvd[left] < min_thickness:
-            delta_gr = gr[i] - gr[left]
-            if abs(delta_gr) > gr_shoulder_threshold:
-                boundary_flags[left] = 0
-                boundary_flags[i] = 0
-                left = (left + i) // 2
-                boundary_flags[left] = 1
-            else:
-                boundary_flags[i] = 0
+      if boundary_flags[i] != 0:
+        if tvd[i] - tvd[left] < min_thickness:
+          delta_gr = gr[i] - gr[left]
+          if abs(delta_gr) > gr_shoulder_threshold:
+            boundary_flags[left] = 0
+            boundary_flags[i] = 0
+            left = (left + i) // 2
+            boundary_flags[left] = 1
           else:
-              left = i
+            boundary_flags[i] = 0
+        else:
+          left = i
     return boundary_flags
 
   def break_unit(self, *args, **kwargs):
@@ -154,8 +154,66 @@ class UnitBreaker():
   def detect_sharp_boundary(self, *args, **kwargs):
     pass
 
-  def compute_lithofacies(self, *args, **kwargs):
-    pass
+  @staticmethod
+  def detect_lithofacies(self, boundary_flags, mud_volume, method = "major", *args, **kwargs):
+    """Detecting lithofacy of each units using boundary_flags and mud_volume curve.
+
+    Parameters
+    ----------
+    boundary_flags : 1D numpy array, shape (n_samples,)
+      Boundary flag of points, 1 if boundary, 0 otherwise.
+
+    mud_volume : 1D numpy array, shape (n_samples,)
+      The input mud volume curve.
+
+    major : str, options: ['major', 'mean']
+      Method to compute lithofacies.
+
+    Returns
+    -------
+    lithofacies : 1D numpy array, shape (n_samples,)
+      Lithofacy of units, sample in the same unit have same lithofacy. Lithofacy is in [1, 2, 3, 4].
+    """
+    
+    idx_set = []
+    n_samples = boundary_flags.shape[0]
+    lithofacies = np.zeros(n_samples).astype(np.int8)
+    
+    if method == 'mean':
+      for i in range (n_samples):
+        idx_set.append(i)
+        if boundary_flags[i] != 0 or i == n_samples - 1:
+          mud_volume_set = mud_volume[idx_set].copy()
+          mean_mud_volume = np.mean(mud_volume_set)
+          if mean_mud_volume < 0.1:
+            lithofacies[idx_set] = 1
+          elif mean_mud_volume < 0.40:
+            lithofacies[idx_set] = 2
+          elif mean_mud_volume < 0.70:
+            lithofacies[idx_set] = 3
+          else:
+            lithofacies[idx_set] = 4
+          idx_set = []
+    elif method == 'major':
+      litho_set = []
+      for i in range (n_samples):
+        idx_set.append(i)
+        if mud_volume[i] < 0.1:
+          litho_set.append(1)
+        elif mud_volume[i] < 0.4:
+          litho_set.append(2)
+        elif mud_volume[i] < 0.7:
+          litho_set.append(3)
+        else:
+          litho_set.append(4)
+        if boundary_flags[i] != 0 or i == n_samples - 1:
+          lithofacies[idx_set] = np.argmax(np.bincount(litho_set))
+          idx_set = []
+          litho_set = []  
+    else:
+      raise ValueError('Method is mean or major')
+    
+    return lithofacies
 
   def label_shape_code(self, *args, **kwagrs):
     pass
