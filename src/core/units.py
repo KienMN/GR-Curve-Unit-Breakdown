@@ -1,12 +1,7 @@
 import numpy as np
+from .utils import compute_number_of_changing_direction_time
 
-class UnitBreaker():
-  def __init__(self, gr = None, md = None, tvd = None, mud = None, *args, **kwargs):
-    self._gr = gr
-    self._md = md
-    self._tvd = tvd
-    self._mud = mud
-
+class UnitBreaker(object):
   @staticmethod
   def detect_changing_direction_point(self, x, epsilon = 0.02, multiplier = 2, *args, **kwargs):
     """Detecting changing direction points in the signal.
@@ -203,7 +198,7 @@ class UnitBreaker():
     Returns
     -------
     lithofacies : 1D numpy array, shape (n_samples,)
-      Lithofacy of units, sample in the same unit have same lithofacy. Lithofacy is in [1, 2, 3, 4].
+      Lithofacy of units, samples in the same unit have same lithofacy. Lithofacy is in [1, 2, 3, 4].
     """
     
     idx_set = []
@@ -246,5 +241,96 @@ class UnitBreaker():
     
     return lithofacies
 
-  def label_shape_code(self, *args, **kwagrs):
-    pass
+  @staticmethod
+  def label_shape_code(self, gr, boundary_flags, tvd, lithofacies, variance,
+                      gr_threshold = 8, gr_avg_threshold = 6, tvd_threshold = 2,
+                      roc_threshold = 0.2, variance_threshold = 25, change_sign_threshold = 1.5,
+                      *args, **kwagrs):
+    """Labeling shape of gr curve of each units.
+
+    Parameters
+    ----------
+    gr : 1D numpy array, shape (n_samples,)
+      The input gamma ray.
+
+    boundary_flags : 1D numpy array, shape (n_samples,)
+      Boundary flag of points, 1 if boundary, 0 otherwise.
+
+    tvd : 1D numpy array, shape (n_samples,)
+      The input tv depth.
+
+    lithofacies : 1D numpy array, shape (n_samples,)
+      Lithofacy of units, samples in the same unit have same lithofacy. Lithofacy is in [1, 2, 3, 4].
+
+    variance : 1D numpy array, shape (n_samples,)
+      Variance of each units, samples in the same unit have same variance.
+
+    gr_threshold : float, default: 8
+      Threshold of difference of gr to detect upward trend.
+
+    gr_avg_threshold : float, default: 6
+      Threshold of difference of average gr to detect upward trend.
+
+    tvd_threshold : float, default: 2
+      Minimum thickness of unit which can be serrated.
+      Thickness is computed by difference of tvd between the first and the last sample in a unit.
+
+    roc_threshold : float, default: 0.2
+      Threshold of rate of change
+
+    variance_threshold : float, default: 25
+      Threshold of variance
+
+    change_sign_threshold : float, default: 1.5
+      Threshold of change sign rate of data.
+
+    Returns
+    -------
+    labels : 1D numpy array, shape (n_samples,)
+      GR shape code of units, samples in the same unit have same lithofacy. Shape code is in [1, 2, 3, 4, 5].
+    """
+
+    n_samples = gr.shape[0]
+    labels = np.zeros(n_samples).astype(np.int8)
+    gr_set = []
+    idx_set = []
+
+    for i in range (n_samples):
+      idx_set.append(i)
+      if boundary_flags[i] != 0 or i == n_samples - 1:
+        if lithofacies[i] != 4:
+          gr_set = gr[idx_set].copy()
+          avg_first = np.average(gr_set[:3])
+          max_first = np.amax(gr_set[:3])
+          min_first = np.amin(gr_set[:3])
+          avg_last = np.average(gr_set[-3:])
+          max_last = np.amax(gr_set[-3:])
+          min_last = np.amin(gr_set[-3:])
+          delta_max_first_min_last = max_first - min_last
+          delta_min_first_max_last = min_first - max_last
+          delta_avg = avg_first - avg_last
+          thickness = tvd[idx_set[-1]] - tvd[idx_set[0]]
+
+          if thickness < tvd_threshold:            
+            if delta_max_first_min_last > gr_threshold and abs(delta_avg) > gr_avg_threshold:
+              labels[idx_set] = 1
+            elif delta_min_first_max_last < -gr_threshold and abs(delta_avg) > gr_avg_threshold:
+              labels[idx_set] = 4
+            else:
+              labels[idx_set] = 2
+          else:
+              if compute_number_of_changing_direction_time(gr_set) / thickness > change_sign_threshold \
+              and variance[idx_set[0]] > variance_threshold \
+              and lithofacies[i] != 1:
+                labels[idx_set] = 3
+              elif delta_max_first_min_last > gr_threshold and abs(delta_avg) > gr_avg_threshold:
+                labels[idx_set] = 1
+              elif delta_min_first_max_last < -gr_threshold and abs(delta_avg) > gr_avg_threshold:
+                labels[idx_set] = 4
+              else:
+                labels[idx_set] = 2
+        else:
+          labels[idx_set] = 5
+        idx_set = []
+        gr_set = []
+    return labels
