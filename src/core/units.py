@@ -389,3 +389,98 @@ class UnitBreaker(object):
         idx_set = []
         gr_set = []
     return labels
+
+  @staticmethod
+  def assign_unit_index(self, boundary_flags):
+    n_samples = boundary_flags.shape[0]
+    unit_index = np.zeros(n_samples).astype(np.int64)
+    sequence_number = 0
+    idx_set = []
+    for i in range (n_samples):
+      idx_set.append(i)
+      if boundary_flags[i] != 0 or i == n_samples - 1:
+        unit_index[idx_set] = sequence_number
+        sequence_number += 1
+        idx_set = []
+    return unit_index
+
+  @staticmethod
+  def find_similar_units(self, gr, tvd, boundary_flags, lithofacies, gr_shape_code, thickness,
+                        zcr, slope, mean_unit, variance_1, variance_2,
+                        max_depth, min_depth = 0, unit_index = None, return_unit_index = True,
+                        rms_threshold = 6, zcr_threshold = 0.5, slope_threshold = 0.5,
+                        mean_threshold = 15, variance_1_threshold = 10, variance_2_threshold = 10,
+                        weights = {'zcr': 1, 'slope': 5, 'mean': 1, 'variance1': 1, 'variance2': 2, 'rms': 3},
+                        score_threshold = 10,
+                        *args, **kwargs):
+
+    n_samples = gr.shape[0]
+    idx_set = []
+    number_of_similar_pattern = np.zeros(n_samples)
+    similar_unit_list = []
+
+    if unit_index is None:
+      unit_index = self.assign_unit_index(boundary_flags)
+
+    for i in range (n_samples):
+      idx_set.append(i)
+      if boundary_flags[i] != 0 or i == n_samples - 1:
+        sub_idx_set = []
+        similar_unit_index = []
+        for j in range (i + 1, n_samples):
+          sub_idx_set.append(j)
+          if boundary_flags[j] != 0 or j == n_samples - 1:
+            current_unit_id = idx_set[0]
+            comparison_unit_id = sub_idx_set[0]
+            if abs(tvd[comparison_unit_id] - tvd[current_unit_id]) >= min_depth and abs(tvd[comparison_unit_id] - tvd[current_unit_id]) <= max_depth:
+              if lithofacies[current_unit_id] == lithofacies[comparison_unit_id] and gr_shape_code[current_unit_id] == gr_shape_code[comparison_unit_id]:
+                if thickness[current_unit_id] * 0.5 < thickness[comparison_unit_id] and thickness[comparison_unit_id] < thickness[current_unit_id] * 1.5:
+                  score = 0
+                  n_current_unit_samples = len(idx_set)
+                  n_comparision_unit_samples = len(sub_idx_set)
+                  current_unit_resamples = np.array([
+                    gr[idx_set[0]],
+                    gr[idx_set[int(n_current_unit_samples * 0.25)]],
+                    gr[idx_set[int(n_current_unit_samples * 0.5)]],
+                    gr[idx_set[int(n_current_unit_samples * 0.75)]],
+                    gr[idx_set[-1]]
+                  ])
+                  
+                  comparison_unit_resamples = np.array([
+                    gr[sub_idx_set[0]],
+                    gr[sub_idx_set[int(n_comparision_unit_samples * 0.25)]],
+                    gr[sub_idx_set[int(n_comparision_unit_samples * 0.5)]],
+                    gr[sub_idx_set[int(n_comparision_unit_samples * 0.75)]],
+                    gr[sub_idx_set[-1]]
+                  ])
+                  
+                  rms = np.sqrt(np.mean((current_unit_resamples - comparison_unit_resamples) ** 2))
+                  if rms < rms_threshold:
+                    score += weights['rms']
+                  if abs(zcr[current_unit_id] - zcr[comparison_unit_id]) < zcr_threshold:
+                    score += weights['zcr']
+                  if abs(slope[current_unit_id] - slope[comparison_unit_id]) < slope_threshold:
+                    score += weights['slope']
+                  if abs(mean_unit[current_unit_id] - mean_unit[comparison_unit_id]) < mean_threshold:
+                    score += weights['mean']
+                  if abs(variance_1[current_unit_id] - variance_1[comparison_unit_id]) < variance_1_threshold:
+                    score += weights['variance1']
+                  if abs(variance_2[current_unit_id] - variance_2[comparison_unit_id]) < variance_2_threshold:
+                    score += weights['variance2']
+                  if score > score_threshold:
+                    number_of_similar_pattern[idx_set] += 1
+                    number_of_similar_pattern[sub_idx_set] += 1
+                    similar_unit_index.append(unit_index[comparison_unit_id])
+            elif abs(tvd[comparison_unit_id] - tvd[current_unit_id]) > max_depth:
+              break
+            sub_idx_set = []
+        similar_unit_list.append(similar_unit_index)
+        idx_set = []
+
+    for i in range (len(similar_unit_list)):
+      for j in range (len(similar_unit_list[i])):
+        if similar_unit_list[i][j] > i:
+          similar_unit_list[similar_unit_list[i][j]].append(i)
+    if return_unit_index:
+      return unit_index, number_of_similar_pattern, similar_unit_list
+    return number_of_similar_pattern, similar_unit_list
