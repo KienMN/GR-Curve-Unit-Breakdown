@@ -331,10 +331,11 @@ class UnitBreaker(object):
       Thickness is computed by difference of tvd between the first and the last sample in a unit.
 
     roc_threshold : float, default: 0.2
-      Threshold of rate of change
+      Threshold of rate of change. ROC is computed by number of time the curve cross a line
+      (connecting first points and last points) divided by number of samples in a unit.
 
     variance_threshold : float, default: 25
-      Threshold of variance
+      Threshold of variance.
 
     change_sign_threshold : float, default: 1.5
       Threshold of change sign rate of data.
@@ -392,6 +393,19 @@ class UnitBreaker(object):
 
   @staticmethod
   def assign_unit_index(self, boundary_flags):
+    """Assigning index for units of curve.
+
+    Parameters
+    ----------
+    boundary_flags : 1D numpy array, shape (n_samples,)
+      Boundary flag of points, 1 if boundary, 0 otherwise.
+
+    Returns
+    -------
+    unit_index : 1D numpy array, shape (n_samples,)
+      Index of units, samples in the same unit have same index.
+    """
+
     n_samples = boundary_flags.shape[0]
     unit_index = np.zeros(n_samples).astype(np.int64)
     sequence_number = 0
@@ -413,6 +427,92 @@ class UnitBreaker(object):
                         weights = {'zcr': 1, 'slope': 5, 'mean': 1, 'variance1': 1, 'variance2': 2, 'rms': 3},
                         score_threshold = 10,
                         *args, **kwargs):
+    """Finding similar units on the curve.
+
+    Parameters
+    ----------
+    gr : 1D numpy array, shape (n_samples,)
+      The input gamma ray.
+
+    tvd : 1D numpy array, shape (n_samples,)
+      The input tv depth.
+
+    boundary_flags : 1D numpy array, shape (n_samples,)
+      Boundary flag of points, 1 if boundary, 0 otherwise.
+
+    lithofacies : 1D numpy array, shape (n_samples,)
+      Lithofacy of units, samples in the same unit have same lithofacy. Lithofacy is in [1, 2, 3, 4].
+
+    gr_shape_code : 1D numpy array, shape (n_samples,)
+      GR shape code of units, samples in the same unit have same lithofacy. Shape code is in [1, 2, 3, 4, 5].
+
+    thickness : 1D numpy array, shape (n_samples,)
+      Thickness of units. Thickness is computed by difference of tvd between the first and the last sample in a unit.
+
+    zcr : 1D numpy array, shape (n_samples,)
+      Zero crossing rate, number of time the curve cross a line (connecting first points and last points)
+      divided by number of samples in a unit.
+
+    slope : 1D numpy array, shape (n_samples,)
+      Slope of units, slope is computed by difference of average of first points and last points divided by number of samples in a unit.
+
+    mean_unit : 1D numpy array, shape (n_samples,)
+      Mean value of gr of each units.
+
+    variance_1 : 1D numpy array, shape (n_samples,)
+      Variance of each units, corresponding to the line of the mean value.
+      Samples in the same unit have same variance.
+
+    variance_2 : 1D numpy array, shape (n_samples,)
+      Variance of each units, corresponding to the line connecting first points and last points.
+
+    max_depth : float
+      Maximum depth between current unit and comparison unit.
+
+    min_depth : float, default: 0
+      Minimum depth between current unit and comparison unit.
+
+    unit_index : 1D numpy array, shape (n_samples,), default: None
+      Index of units. Samples in same unit have the same unit index.
+    
+    return_unit_index : boolean, defaul: True
+      If True, returns index of units.
+
+    rms_threshold : float, defaul: 6
+      Threshold of root mean square of resampled current unit and resampled comparison unit.
+
+    zcr_threshold : float, default: 0.5
+      Threshold of zero crossing rate.
+
+    slope_threshold : float, default: 0.5
+      Threshold of slope.
+
+    mean_threshold : float, default: 15
+      Threshold of mean value of gr.
+    
+    variance_1_threshold : float, default: 10
+      Threshold of variance 1.
+    
+    variance_2_threshold : float, default: 10
+      Threshold of variance 2.
+
+    weights : dict, default: {'zcr': 1, 'slope': 5, 'mean': 1, 'variance1': 1, 'variance2': 2, 'rms': 3},
+      Weights of each criterions.
+
+    score_threshold: int, default: 10
+      Threshold of score, if total weights of met criterion is larger than score then 2 units are similar.
+
+    Returns
+    -------
+    unit_index : 1D numpy array, shape (n_samples,)
+      Index of units, if return_unit_index is True.
+    
+    number_of_similar_pattern : 1D numpy array, shape (n_samples,)
+      Number of similar units of each units.
+
+    similar_unit_list : list
+      List of list of similar units of each units.
+    """
 
     n_samples = gr.shape[0]
     idx_set = []
