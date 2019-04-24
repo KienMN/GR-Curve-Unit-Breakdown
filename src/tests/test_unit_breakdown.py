@@ -1,13 +1,10 @@
-# Adding path to libraries
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import context
 
-from core.units import UnitBreaker
-from core.dataset import load_dataset
-from core.smoothing_functions import window_smooth
+from unit_breakdown.units import UnitBreaker
+from unit_breakdown.dataset import load_dataset
+from unit_breakdown.smoothing_functions import window_smooth
+
 import numpy as np
-
 import unittest
 
 class TestUnitBreakdown(unittest.TestCase):
