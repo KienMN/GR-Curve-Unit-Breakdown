@@ -3,7 +3,7 @@ from .utils import compute_number_of_changing_direction_time
 
 class UnitBreaker(object):
   @staticmethod
-  def detect_changing_direction_point(self, x, epsilon = 0.02, multiplier = 2, *args, **kwargs):
+  def detect_changing_direction_point(x, epsilon = 0.02, multiplier = 2, *args, **kwargs):
     """Detecting changing direction points in the signal.
 
     Parameters
@@ -61,7 +61,7 @@ class UnitBreaker(object):
     return point_flags
 
   @staticmethod
-  def refine_peak(self, x, flags, margin = 2, *args, **kwargs):
+  def refine_peak(x, flags, margin = 2, *args, **kwargs):
     """Refining peaks in the signal, by moving flag of peaks in a window.
 
     Parameters
@@ -96,7 +96,7 @@ class UnitBreaker(object):
     return refined_flags
 
   @staticmethod
-  def select_boundary(self, gr, flags, tvd, min_thickness = 1, gr_shoulder_threshold = 10):
+  def select_boundary(gr, flags, tvd, min_thickness = 1, gr_shoulder_threshold = 10):
     """Select peaks in the gr curve to become boundaries.
 
     Parameters
@@ -141,7 +141,7 @@ class UnitBreaker(object):
     return boundary_flags
 
   @staticmethod
-  def stack_unit(self, gr_smooth, units_boundary,
+  def stack_unit(gr_smooth, units_boundary,
                 min_samples = 15, gr_smooth_threshold = 5,
                 *args, **kwargs):
     """Stacking units to create stacking patterns.
@@ -168,7 +168,7 @@ class UnitBreaker(object):
 
     n_samples = gr_smooth.shape[0]
     stacks_pattern = np.zeros(n_samples).astype(np.int8)
-    stacks_boundary = self.detect_changing_direction_point(gr_smooth, epsilon = 0, multiplier = 1000000)
+    stacks_boundary = UnitBreaker().detect_changing_direction_point(gr_smooth, epsilon = 0, multiplier = 1000000)
 
     idx_set = []
     for i in range (n_samples):
@@ -199,7 +199,7 @@ class UnitBreaker(object):
     return stacks_label
 
   @staticmethod
-  def detect_sharp_boundary(self, gr, boundary_flags, min_diff = 40, *args, **kwargs):
+  def detect_sharp_boundary(gr, boundary_flags, min_diff = 40, *args, **kwargs):
     """Detecting sharp boundaries on gr curve.
 
     Parameters
@@ -236,7 +236,7 @@ class UnitBreaker(object):
     return sharp_boundary_flags
 
   @staticmethod
-  def detect_lithofacies(self, boundary_flags, mud_volume, method = "major", *args, **kwargs):
+  def detect_lithofacies(boundary_flags, mud_volume, method = "major", *args, **kwargs):
     """Detecting lithofacy of each units using boundary_flags and mud_volume curve.
 
     Parameters
@@ -297,7 +297,7 @@ class UnitBreaker(object):
     return lithofacies
 
   @staticmethod
-  def label_shape_code(self, gr, boundary_flags, tvd, lithofacies, variance,
+  def label_shape_code(gr, boundary_flags, tvd, lithofacies, variance,
                       gr_threshold = 8, gr_avg_threshold = 6, tvd_threshold = 2,
                       roc_threshold = 0.2, variance_threshold = 25, change_sign_threshold = 1.5,
                       *args, **kwagrs):
@@ -392,7 +392,7 @@ class UnitBreaker(object):
     return labels
 
   @staticmethod
-  def assign_unit_index(self, boundary_flags):
+  def assign_unit_index(boundary_flags):
     """Assigning index for units of curve.
 
     Parameters
@@ -419,7 +419,7 @@ class UnitBreaker(object):
     return unit_index
 
   @staticmethod
-  def find_similar_units(self, gr, tvd, boundary_flags, lithofacies, gr_shape_code, thickness,
+  def find_similar_units(gr, tvd, boundary_flags, lithofacies, gr_shape_code, thickness,
                         zcr, slope, mean_unit, variance_1, variance_2,
                         max_depth, min_depth = 0, unit_index = None, return_unit_index = True,
                         rms_threshold = 6, zcr_threshold = 0.5, slope_threshold = 0.5,
@@ -520,7 +520,7 @@ class UnitBreaker(object):
     similar_unit_list = []
 
     if unit_index is None:
-      unit_index = self.assign_unit_index(boundary_flags)
+      unit_index = UnitBreaker().assign_unit_index(boundary_flags)
 
     for i in range (n_samples):
       idx_set.append(i)

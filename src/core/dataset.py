@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-default_filepath = os.path.dirname(__file__) + 'sample_data/sample_dataset.csv'
+default_filepath = os.path.dirname(__file__) + '/sample_data/sample_dataset.csv'
 
 def load_dataset(filepath = default_filepath):
   """Loading sample dataset or a specific dataset
