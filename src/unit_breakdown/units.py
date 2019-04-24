@@ -124,6 +124,7 @@ class UnitBreaker(object):
 
     n_samples = flags.shape[0]
     boundary_flags = flags.copy()
+    boundary_flags[boundary_flags != 0] = 1
     left = 0
     for i in range (1, n_samples):
       if boundary_flags[i] != 0:
@@ -138,6 +139,7 @@ class UnitBreaker(object):
             boundary_flags[i] = 0
         else:
           left = i
+    boundary_flags[-1] = 1
     return boundary_flags
 
   @staticmethod

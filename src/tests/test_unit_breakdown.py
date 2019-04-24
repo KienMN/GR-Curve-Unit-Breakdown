@@ -42,7 +42,7 @@ class TestUnitBreakdown(unittest.TestCase):
     refined_peak_2 = UnitBreaker().refine_peak(x = gr, flags = refined_peak)
     boundary_flags = UnitBreaker().select_boundary(gr = gr, flags = refined_peak_2, tvd = tvd,
                                                   min_thickness = 1, gr_shoulder_threshold = 10)
-    self.assertEqual(boundary_flags.shape, gr.shape)
+    self.assertEqual(np.max(boundary_flags), 1)
 
   def test_detect_lithofacies(self):
     gr, v_mud, tvd = load_dataset()
