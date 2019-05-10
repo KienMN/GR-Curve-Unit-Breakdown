@@ -1,5 +1,8 @@
 import numpy as np
-from .utils import compute_number_of_changing_direction_time
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set()
+from utils import compute_number_of_changing_direction_time
 
 class UnitBreaker(object):
   @staticmethod
@@ -586,3 +589,43 @@ class UnitBreaker(object):
     if return_unit_index:
       return unit_index, number_of_similar_pattern, similar_unit_list
     return number_of_similar_pattern, similar_unit_list
+
+  @staticmethod
+  def visualize_units(gr, labels, boundary_flags, start = 0, n_samples = 1000, n_pics = 6):
+
+    colors = ['c', 'r', 'g', 'b', 'y', 'black']
+    str_labels = ['', 'FU', 'UN', 'SR', 'CU', 'Mud']
+
+    fig, axes = plt.subplots(1, n_pics, figsize = (3 * n_pics, 15))
+
+    for j, ax in enumerate(axes):
+      pic_start = start + n_samples * j
+      idx_set = [pic_start]
+      for i in range (pic_start + 1, pic_start + n_samples + 1):
+        if labels[i - 1] != labels[i] or i == pic_start + n_samples:
+          label = labels[i - 1]
+          str_label = str_labels[label]
+          if str_label in plt.gca().get_legend_handles_labels()[1]:
+            str_label = ''
+          ax.plot(gr[idx_set], idx_set, c = colors[label], label = str_label, linewidth = 1.2)
+          idx_set = [i - 1]
+        idx_set.append(i)
+        
+        #ax.plot(gr_smooth[demo_start: demo_start + n_demo_samples], np.arange(demo_start, demo_start + n_demo_samples), c = 'b')
+        #ax.scatter(gr_smooth[demo_start: demo_start + n_demo_samples][np.where(change_direction_point_flag[demo_start: demo_start + n_demo_samples] != 0)[0]],
+        #           np.arange(demo_start, demo_start + n_demo_samples)[np.where(change_direction_point_flag[demo_start: demo_start + n_demo_samples] != 0)[0]],
+        #           c = 'red', s = 10)
+        
+      for y in np.arange(pic_start, pic_start + n_samples)[boundary_flags[pic_start: pic_start + n_samples] != 0]:
+        ax.axhline(y, c = 'black', linewidth = 0.5)
+      
+      ax.set_xlim([0, 150])
+      ax.set_xlabel('GR')
+      ax.set_ylabel('Sequence number of samples')
+      ax.xaxis.tick_top()
+      ax.xaxis.set_label_position('top')
+      ax.invert_yaxis()
+
+    plt.legend().set_draggable(True)
+    plt.tight_layout()
+    plt.show()

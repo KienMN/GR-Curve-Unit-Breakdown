@@ -3,6 +3,7 @@ import context
 from unit_breakdown.units import UnitBreaker
 from unit_breakdown.dataset import load_dataset
 from unit_breakdown.smoothing_functions import window_smooth
+from unit_breakdown.utils import compute_variance_base_on_slope_line
 
 import numpy as np
 import unittest
@@ -75,12 +76,6 @@ class TestUnitBreakdown(unittest.TestCase):
     boundary_flags = UnitBreaker().select_boundary(gr = gr, flags = refined_peak_2, tvd = tvd,
                                                   min_thickness = 1, gr_shoulder_threshold = 10)
     lithofacies = UnitBreaker().detect_lithofacies(boundary_flags = boundary_flags, mud_volume = v_mud, method = 'major')
-    def compute_variance_base_on_slope_line(arr):
-      n_samples = arr.shape[0]
-      avg_first = np.average(arr[:2])
-      avg_last = np.average(arr[-2:])
-      base_line = np.linspace(avg_first, avg_last, n_samples, endpoint = True)
-      return np.mean((arr - base_line) ** 2)
 
     n_samples = gr.shape[0]
     variance_2 = np.zeros(n_samples)
