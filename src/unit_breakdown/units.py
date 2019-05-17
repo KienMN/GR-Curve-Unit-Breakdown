@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set()
-from utils import compute_number_of_changing_direction_time
+from .utils import compute_number_of_changing_direction_time
+from .utils import compute_number_of_time_crossing_slope_line
 
 class UnitBreaker(object):
   @staticmethod
@@ -302,9 +303,9 @@ class UnitBreaker(object):
     return lithofacies
 
   @staticmethod
-  def label_shape_code(gr, boundary_flags, tvd, lithofacies, variance,
+  def label_shape_code(gr, boundary_flags, md, tvd, lithofacies, variance,
                       gr_threshold = 8, gr_avg_threshold = 6, tvd_threshold = 2,
-                      roc_threshold = 0.2, variance_threshold = 25, change_sign_threshold = 1.5,
+                      roc_threshold = 2, variance_threshold = 25, change_sign_threshold = 1.5,
                       *args, **kwagrs):
     """Labeling shape of gr curve of each units.
 
@@ -355,18 +356,21 @@ class UnitBreaker(object):
     labels = np.zeros(n_samples).astype(np.int8)
     gr_set = []
     idx_set = []
+    sample_rate = (md[-1] - md[0]) / md.shape[0]
+    const_distance = 0.3
+    n_selected_sample = int(round(const_distance / sample_rate) + 1)
 
     for i in range (n_samples):
       idx_set.append(i)
       if boundary_flags[i] != 0 or i == n_samples - 1:
         if lithofacies[i] != 4:
           gr_set = gr[idx_set].copy()
-          avg_first = np.average(gr_set[:3])
-          max_first = np.amax(gr_set[:3])
-          min_first = np.amin(gr_set[:3])
-          avg_last = np.average(gr_set[-3:])
-          max_last = np.amax(gr_set[-3:])
-          min_last = np.amin(gr_set[-3:])
+          avg_first = np.average(gr_set[:n_selected_sample])
+          max_first = np.amax(gr_set[:n_selected_sample])
+          min_first = np.amin(gr_set[:n_selected_sample])
+          avg_last = np.average(gr_set[-n_selected_sample:])
+          max_last = np.amax(gr_set[-n_selected_sample:])
+          min_last = np.amin(gr_set[-n_selected_sample:])
           delta_max_first_min_last = max_first - min_last
           delta_min_first_max_last = min_first - max_last
           delta_avg = avg_first - avg_last
@@ -382,7 +386,8 @@ class UnitBreaker(object):
           else:
               if compute_number_of_changing_direction_time(gr_set) / thickness > change_sign_threshold \
               and variance[idx_set[0]] > variance_threshold \
-              and lithofacies[i] != 1:
+              and lithofacies[i] != 1 \
+              and compute_number_of_time_crossing_slope_line(gr_set) / thickness > roc_threshold:
                 labels[idx_set] = 3
               elif delta_max_first_min_last > gr_threshold and abs(delta_avg) > gr_avg_threshold:
                 labels[idx_set] = 1
@@ -589,6 +594,34 @@ class UnitBreaker(object):
     if return_unit_index:
       return unit_index, number_of_similar_pattern, similar_unit_list
     return number_of_similar_pattern, similar_unit_list
+
+  @staticmethod
+  def visualize_units_boundary(gr, gr_smooth, tvd, boundary_flags, start = 0, n_samples = 1000, n_pics = 6):
+
+    colors = ['c', 'r', 'g', 'b', 'y', 'black']
+    str_labels = ['', 'FU', 'UN', 'SR', 'CU', 'Mud']
+
+    fig, axes = plt.subplots(1, n_pics, figsize = (3 * n_pics, 15))
+
+    for j, ax in enumerate(axes):
+      pic_start = start + n_samples * j
+      pic_stop = pic_start + n_samples
+      print(gr[pic_start: pic_stop], tvd[pic_start: pic_stop])
+      ax.plot(gr[pic_start: pic_stop], tvd[pic_start: pic_stop], label = 'raw gr', linewidth = 1.2)
+      ax.plot(gr_smooth[pic_start: pic_stop], tvd[pic_start: pic_stop], label = 'smooth gr', linewidth = 1.2)
+      for y in np.arange(pic_start, pic_stop)[boundary_flags[pic_start: pic_stop] != 0]:
+        ax.axhline(tvd[y], c = 'black', linewidth = 0.5)
+      
+      ax.set_xlim([0, 150])
+      ax.set_xlabel('GR')
+      ax.set_ylabel('TVD')
+      ax.xaxis.tick_top()
+      ax.xaxis.set_label_position('top')
+      ax.invert_yaxis()
+
+    plt.legend().set_draggable(True)
+    plt.tight_layout()
+    plt.show()
 
   @staticmethod
   def visualize_units(gr, labels, boundary_flags, start = 0, n_samples = 1000, n_pics = 6):

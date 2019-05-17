@@ -16,7 +16,7 @@ def compute_number_of_changing_direction_time(arr):
       upward = not upward
   return count
 
-def compute_rate_of_change(arr):
+def compute_number_of_time_crossing_slope_line(arr):
   n_samples = arr.shape[0]
   avg_first = np.average(arr[:2])
   avg_last = np.average(arr[-2:])
@@ -34,7 +34,7 @@ def compute_rate_of_change(arr):
       if (upward and difference[j] < 0) or ((not upward) and difference[j] > 0):
           count += 1
           upward = not upward
-  return count / n_samples
+  return count
 
 def compute_slope(arr):
   return (np.average(arr[:2]) - np.average(arr[-2:])) / arr.shape[0]

@@ -11,24 +11,24 @@ import unittest
 class TestUnitBreakdown(unittest.TestCase):
   def test_load_dataset(self):
     try:
-      gr, _, _ = load_dataset()
+      gr, _, _, _ = load_dataset()
     except:
       gr = None
     self.assertIsNotNone(gr)
   
   def test_window_smoothing(self):
-    gr, _, _ = load_dataset()
+    gr, _, _, _ = load_dataset()
     gr_smooth = window_smooth(gr, window_len = 14, window = 'hamming')
     self.assertAlmostEqual(gr_smooth.shape, gr.shape)
   
   def test_detect_changing_direction_point(self):
-    gr, _, _ = load_dataset()
+    gr, _, _, _ = load_dataset()
     gr_smooth = window_smooth(gr, window_len = 14, window = 'hamming')
     changing_direction_point_flag = UnitBreaker().detect_changing_direction_point(x = gr_smooth, epsilon = 0.05, multiplier = 7)
     self.assertAlmostEqual(changing_direction_point_flag.shape, gr.shape)
 
   def test_refine_peak(self):
-    gr, _, _ = load_dataset()
+    gr, _, _, _ = load_dataset()
     gr_smooth = window_smooth(gr, window_len = 14, window = 'hamming')
     changing_direction_point_flag = UnitBreaker().detect_changing_direction_point(x = gr_smooth, epsilon = 0.05, multiplier = 7)
     refined_peak = UnitBreaker().refine_peak(x = gr, flags = changing_direction_point_flag)
@@ -36,7 +36,7 @@ class TestUnitBreakdown(unittest.TestCase):
     self.assertEqual(refined_peak_2.shape, gr.shape)
 
   def test_select_boundary(self):
-    gr, _, tvd = load_dataset()
+    gr, _, tvd, _ = load_dataset()
     gr_smooth = window_smooth(gr, window_len = 14, window = 'hamming')
     changing_direction_point_flag = UnitBreaker().detect_changing_direction_point(x = gr_smooth, epsilon = 0.05, multiplier = 7)
     refined_peak = UnitBreaker().refine_peak(x = gr, flags = changing_direction_point_flag)
@@ -46,7 +46,7 @@ class TestUnitBreakdown(unittest.TestCase):
     self.assertEqual(np.max(boundary_flags), 1)
 
   def test_detect_lithofacies(self):
-    gr, v_mud, tvd = load_dataset()
+    gr, v_mud, tvd, _ = load_dataset()
     gr_smooth = window_smooth(gr, window_len = 14, window = 'hamming')
     changing_direction_point_flag = UnitBreaker().detect_changing_direction_point(x = gr_smooth, epsilon = 0.05, multiplier = 7)
     refined_peak = UnitBreaker().refine_peak(x = gr, flags = changing_direction_point_flag)
@@ -57,7 +57,7 @@ class TestUnitBreakdown(unittest.TestCase):
     self.assertEqual(lithofacies.shape, gr.shape)
 
   def test_detect_sharp_boundary(self):
-    gr, _, tvd = load_dataset()
+    gr, _, tvd, _ = load_dataset()
     gr_smooth = window_smooth(gr, window_len = 14, window = 'hamming')
     changing_direction_point_flag = UnitBreaker().detect_changing_direction_point(x = gr_smooth, epsilon = 0.05, multiplier = 7)
     refined_peak = UnitBreaker().refine_peak(x = gr, flags = changing_direction_point_flag)
@@ -68,7 +68,7 @@ class TestUnitBreakdown(unittest.TestCase):
     self.assertEqual(sharp_boundary.shape, gr.shape)
 
   def test_label_shape_code(self):
-    gr, v_mud, tvd = load_dataset()
+    gr, v_mud, tvd, md = load_dataset()
     gr_smooth = window_smooth(gr, window_len = 14, window = 'hamming')
     changing_direction_point_flag = UnitBreaker().detect_changing_direction_point(x = gr_smooth, epsilon = 0.05, multiplier = 7)
     refined_peak = UnitBreaker().refine_peak(x = gr, flags = changing_direction_point_flag)
@@ -88,13 +88,13 @@ class TestUnitBreakdown(unittest.TestCase):
         variance_2[idx_set] = compute_variance_base_on_slope_line(gr_set)
         idx_set = []
     
-    labels = UnitBreaker().label_shape_code(gr = gr, boundary_flags = boundary_flags, tvd = tvd, lithofacies = lithofacies,
+    labels = UnitBreaker().label_shape_code(gr = gr, boundary_flags = boundary_flags, tvd = tvd, md = md, lithofacies = lithofacies,
                                             variance = variance_2, gr_threshold = 8, gr_avg_threshold = 6, tvd_threshold = 2,
                                             roc_threshold = 0.2, variance_threshold = 40, change_sign_threshold = 2)
     self.assertNotEqual(np.min(labels), 0)
 
   def test_stack_patterns(self):
-    gr, _, tvd = load_dataset()
+    gr, _, tvd, _ = load_dataset()
     
     # Detect unit boundary
     gr_smooth = window_smooth(gr, window_len = 14, window = 'hamming')

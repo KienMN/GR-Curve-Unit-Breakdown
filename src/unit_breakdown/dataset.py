@@ -25,4 +25,5 @@ def load_dataset(filepath = default_filepath):
   gr = dataset.GR.values
   mud_volume = dataset.MUD_VOLUME.values
   tvd = dataset.TVD.values
-  return gr, mud_volume, tvd
+  md = dataset.Depth.values
+  return gr, mud_volume, tvd, md
