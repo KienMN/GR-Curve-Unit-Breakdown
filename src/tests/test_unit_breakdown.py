@@ -9,6 +9,11 @@ import numpy as np
 import unittest
 
 class TestUnitBreakdown(unittest.TestCase):
+  def test_fill_null_values(self):
+    a = np.array([-1, -1, 1, 2, 3, 2, 3, -1, -1, 2, 4, 5, 4, 3, 5, -9, 10, -1, -1])
+    a_filled, _ = UnitBreaker().fill_null_values(a)
+    self.assertTrue(any(a_filled != None))
+
   def test_load_dataset(self):
     try:
       gr, _, _, _ = load_dataset()

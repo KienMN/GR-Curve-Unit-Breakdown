@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set()
@@ -6,6 +7,52 @@ from .utils import compute_number_of_changing_direction_time
 from .utils import compute_number_of_time_crossing_slope_line
 
 class UnitBreaker(object):
+  @staticmethod
+  def fill_null_values(x, method = 'linear'):
+    """Filling null values in the array.
+
+    Parameters
+    ----------
+    x : 1D numpy array, shape (n_samples,)
+      The input array.
+
+    method : str, default ‘linear’
+      Interpolation technique to use. See pandas.Series.interpolate for more information.
+
+    Returns
+    -------
+    x_filled : 1D numpy array, shape (n_samples,)
+      The array after being filled.
+
+    null_value_flags : 1D numpy array, shape (n_samples,)
+      The array saving position of null values, where 1 is null value.
+    
+    """
+    n_samples = x.shape[0]
+    x = np.array(x, dtype = 'float64')
+    x[x < 0] = np.nan
+    null_value_flags = np.zeros(n_samples)
+    null_value_flags[np.isnan(x)] = 1
+    
+    i = 0
+    idx_set = []
+    while np.isnan(x[i]):
+      idx_set.append(i)
+      i += 1
+    x[idx_set] = x[i]
+
+    i = n_samples - 1
+    idx_set = []
+    while np.isnan(x[i]):
+      idx_set.append(i)
+      i -= 1
+    x[idx_set] = x[i]
+
+    s = pd.Series(x)
+    s = pd.to_numeric(s)
+    s = s.interpolate(method = method)
+    return s.values, null_value_flags
+
   @staticmethod
   def detect_changing_direction_point(x, epsilon = 0.02, multiplier = 2, *args, **kwargs):
     """Detecting changing direction points in the signal.
@@ -30,11 +77,13 @@ class UnitBreaker(object):
     diff = np.diff(x, axis = 0)
     n_samples = len(x)
     point_flags = np.zeros(n_samples)
-    
+    start = 0
     increase = False
-    if diff[0] >= 0:
+    while diff[start] == 0:
+      start += 1
+    if diff[start] >= 0:
       increase = True
-    for i in range (1, n_samples - 1):
+    for i in range (start + 1, n_samples - 1):
       if diff[i] * diff[i - 1] < 0:
         if abs(diff[i]) > epsilon or abs(diff[i - 1]) > epsilon:
           if increase:
@@ -597,21 +646,17 @@ class UnitBreaker(object):
 
   @staticmethod
   def visualize_units_boundary(gr, gr_smooth, tvd, boundary_flags, start = 0, n_samples = 1000, n_pics = 6):
-
-    colors = ['c', 'r', 'g', 'b', 'y', 'black']
-    str_labels = ['', 'FU', 'UN', 'SR', 'CU', 'Mud']
-
     fig, axes = plt.subplots(1, n_pics, figsize = (3 * n_pics, 15))
 
     for j, ax in enumerate(axes):
       pic_start = start + n_samples * j
       pic_stop = pic_start + n_samples
-      print(gr[pic_start: pic_stop], tvd[pic_start: pic_stop])
       ax.plot(gr[pic_start: pic_stop], tvd[pic_start: pic_stop], label = 'raw gr', linewidth = 1.2)
       ax.plot(gr_smooth[pic_start: pic_stop], tvd[pic_start: pic_stop], label = 'smooth gr', linewidth = 1.2)
-      for y in np.arange(pic_start, pic_stop)[boundary_flags[pic_start: pic_stop] != 0]:
+      for y in np.arange(pic_start, pic_stop)[boundary_flags[pic_start: pic_stop] == 1]:
         ax.axhline(tvd[y], c = 'black', linewidth = 0.5)
-      
+      for y in np.arange(pic_start, pic_stop)[boundary_flags[pic_start: pic_stop] == 2]:
+        ax.axhline(tvd[y], c = 'red', linewidth = 0.5)
       ax.set_xlim([0, 150])
       ax.set_xlabel('GR')
       ax.set_ylabel('TVD')
