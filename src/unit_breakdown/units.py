@@ -670,7 +670,34 @@ class UnitBreaker(object):
 
   @staticmethod
   def visualize_units(gr, labels, boundary_flags, start = 0, n_samples = 1000, n_pics = 6):
+    """
+    Visualizing units on gr curve.
 
+    Parameters
+    ----------
+    gr : 1D numpy array, shape (n_sample,)
+      The GR curve.
+
+    labels : 1D numpy array, shape (n_samples,)
+      GR shape code of units, samples in the same unit have same lithofacy. Shape code is in [1, 2, 3, 4, 5].
+
+    boundary_flags : 1D numpy array, shape (n_samples,)
+      Boundary flag of points, 1 if boundary, 0 otherwise.
+
+    start : int
+      Sequence number of start sample.
+
+    n_samples : int
+      Number of samples for each pictures.
+
+    n_pics : int
+      Number of pictures to visualize.
+
+    Returns
+    -------
+    None
+    """
+    
     colors = ['c', 'r', 'g', 'b', 'y', 'black']
     str_labels = ['', 'FU', 'UN', 'SR', 'CU', 'Mud']
 
