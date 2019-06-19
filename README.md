@@ -40,3 +40,7 @@ Test cases are written following format of unittest module. Run test files by co
 ```bash
 python3 tests/{test_file_name}.py
 ```
+
+## Visualization
+Sample visualization of units on the GR curve.
+![Alt text](result_pic/demo.png?raw=true "Sample visualization")
